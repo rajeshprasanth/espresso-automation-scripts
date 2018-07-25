@@ -1,0 +1,59 @@
+&control
+    title = 'Mg2SiGe'
+    calculation = 'scf'
+    restart_mode = 'from_scratch'
+    outdir = './output3'
+    pseudo_dir = '/home/rajeshprashanth/pseudo'
+    tstress = .true.
+    tprnfor = .true.
+    verbosity = 'high'
+/
+
+&system
+    ibrav = 0
+    nat = 6
+    ntyp = 3
+    ecutwfc = 80
+    celldm = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+    a = 0.0
+    b = 0.0
+    c = 0.0
+    cosab = 0.0
+    cosbc = 0.0
+    cosac = 0.0
+/
+
+&electrons
+    diago_cg_maxiter = 500
+    diagonalization = 'cg'
+/
+
+&ions
+    ion_dynamics = 'bfgs'
+/
+
+&cell
+    press = 0
+    press_conv_thr = 0.1
+/
+
+ATOMIC_SPECIES
+  Mg   24.30500   Mg.pbe-mt_fhi.UPF
+  Ge   72.59000   Ge.pbe-mt_fhi.UPF
+  Si   28.08500   Si.pbe-mt_fhi.UPF
+
+CELL_PARAMETERS {angstrom}
+   4.514854151   0.000000000   0.000000000
+   0.000000000   4.514854151   0.000000000
+   0.000000000   0.000000000   6.383842669
+
+ATOMIC_POSITIONS {crystal}
+Si       0.500000000   0.500000000   0.500000000
+Ge       0.000000000   0.000000000   0.000000000
+Mg       0.500000000   0.000000000   0.251648629
+Mg       0.000000000   0.500000000   0.251648629
+Mg       0.000000000   0.500000000   0.748351371
+Mg       0.500000000   0.000000000   0.748351371
+
+K_POINTS {automatic}
+8 8 4  0 0 0
