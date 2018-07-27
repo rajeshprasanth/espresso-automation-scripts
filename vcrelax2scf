@@ -34,13 +34,13 @@ version() {
 }
 
 if [  $# -ne 3  ]; then
-    if [ $1 == "-h" ]; then
+    if [ "$1" = "-h" ]; then
     help_message && exit 1
-    elif [ $1 == "--help" ];then
+    elif [ "$1" = "--help" ];then
         help_message && exit 1
-    elif [ $1 == "-v" ];then
+    elif [ "$1" = "-v" ];then
         version $0 && exit 1
-    elif [ $1 == "--version" ];then
+    elif [ "$1" = "--version" ];then
         version $0 && exit 1
     else
         help_message && exit 1
