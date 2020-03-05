@@ -1,0 +1,144 @@
+#!/bin/bash
+#
+# Created on Mon Mar 25 06:23:16 IST 2019
+#
+#----------------------------------------------------------#
+# Import Configuration file                                #
+#----------------------------------------------------------#
+#
+#
+#----------------------------------------------------------#
+# Read input arguments and export them to variables        #
+#----------------------------------------------------------#
+#
+INP_POSCAR=$1
+PSEUDO_STRING=$2
+TEMPLATE_NAME=$3
+SYS_NAME=$4
+
+export INP_POSCAR
+export PSEUDO_STRING
+export TEMPLATE_NAME
+export SYS_NAME
+export AFLOW_PATH
+#
+
+export numargs=$#
+
+banner(){
+  echo "+--------------------------------------------------------+"
+  echo "|                    AFLOWQE -v 1.0.0                    |"
+  echo "+--------------------------------------------------------+"
+
+}
+check_args() {
+  if [ $numargs -ne 4 ] ; then
+    echo "Usage :: AFLOWQE [INP_POSCAR] [PSEUDO_STRING] [TEMPLATE_NAME] [SYS_NAME]"
+    exit 1;
+  fi
+
+  if test ! -f $INP_POSCAR ; then
+          echo "FATAL ERROR :: $INP_POSCAR not found"
+          exit 1;
+  fi
+
+  if test ! -f $TEMPLATE_NAME ; then
+          echo "FATAL ERROR :: $TEMPLATE_NAME not found"
+          exit 1;
+  fi
+
+  if test ! -d qe_inp ; then
+          mkdir qe_inp
+  fi
+
+  if test ! -d aflowqe_files ; then
+          mkdir aflowqe_files
+  fi
+}
+
+aflow_qe_init() {
+ 	# Generates all files
+ 	#
+	#----------------------------------------------------------#
+	# Read input POSCAR and rewrite to AFLOW STD POSCAR format #
+	#----------------------------------------------------------#
+	#
+  printf "Generating AFLOW customized POSCAR from stdin ..... "
+  aflow --poscar < $INP_POSCAR > $SYS_NAME.aflow.std_poscar
+  printf "Done\n"
+  #
+  #--------------------------------------------------------#
+	# Convert aflow.std_poscar to POSCAR (CONVENTIONAL CELL) #
+	#--------------------------------------------------------#
+	# aflow --std_conv | --standard_conventional | --sconv | --sc < POSCAR
+	#
+ 	printf "Generating AFLOW CONVENTIONAL POSCAR ..... "
+  #$AFLOW_PATH/aflow --std_conv < $SYS_NAME.aflow.std_poscar > $SYS_NAME.aflow.std_conv_poscar
+  aflow --poscar < $SYS_NAME.aflow.std_poscar > $SYS_NAME.aflow.std_conv_poscar
+  #
+  #-----------------------------------------------------#
+	# Convert aflow.std_poscar to POSCAR (PRIMITIVE CELL) #
+	#-----------------------------------------------------#
+	# aflow --std_prim | --standard_primitive | --sprim | --sp < POSCAR
+	printf "Done\n"
+  printf "Generating AFLOW PRIMITIVE POSCAR ..... "
+  #aflow --std_prim < $SYS_NAME.aflow.std_poscar > $SYS_NAME.aflow.std_prim_poscar
+  aflow --prim < $SYS_NAME.aflow.std_poscar > $SYS_NAME.aflow.std_prim_poscar
+  
+  printf "Done\n"
+  #
+  #
+  #---------------------------------------------------------------#
+	# Convert aflow.std_conv_poscar to QE INPUT (CONVENTIONAL CELL) #
+	#---------------------------------------------------------------#
+	# aflow --std_prim | --standard_primitive | --sprim | --sp < POSCAR
+  printf "Generating QE CONVENTIONAL FILE ..... "
+  aflow --qe < $SYS_NAME.aflow.std_conv_poscar > $SYS_NAME.qe.std_conv
+  printf "Done\n"
+	#
+  #-------------------------------------------------------#
+	# Convert aflow.std_poscar to QE INPUT (PRIMITIVE CELL) #
+	#-------------------------------------------------------#
+	# aflow --std_prim | --standard_primitive | --sprim | --sp < POSCAR
+  printf "Generating QE PRIMITIVE FILE ..... "
+  aflow --qe < $SYS_NAME.aflow.std_prim_poscar > $SYS_NAME.qe.std_prim
+  printf "Done\n"
+
+  #
+}
+
+
+tweak_qe_inp (){
+  INPFILE=$1
+  export ibrav=`grep -i ibrav $INPFILE |gawk -F= '{print \$2}'| gawk -F, '{print \$1}'`
+  export nat=`grep -i nat $INPFILE |gawk -F= '{print \$2}'| gawk -F, '{print \$1}'`
+  export ntyp=`grep -i ntyp $INPFILE |gawk -F= '{print \$2}'| gawk  '{print \$1}'`
+  export INPFILE
+
+  echo ""
+  sed -e "s/AAAAA/$SYS_NAME/g;s/BBBBB/$ibrav/g;s/CCCCC/$nat/g;s/DDDDD/$ntyp/g;" $TEMPLATE_NAME
+
+  atoms.py $PSEUDO_STRING `sed -n 6p $SYS_NAME.aflow.std_poscar`
+  echo ""
+
+  grep "ATOMIC_POSITIONS" -A $nat $INPFILE
+  echo ""
+
+  grep "CELL_PARAMETERS" -A 3 $INPFILE
+  echo ""
+  echo "K_POINTS {automatic}"
+}
+
+banner
+check_args
+aflow_qe_init
+
+
+
+tweak_qe_inp $SYS_NAME.qe.std_prim > qe_inp/$SYS_NAME.qe.std_prim.in
+tweak_qe_inp $SYS_NAME.qe.std_conv > qe_inp/$SYS_NAME.qe.std_conv.in
+
+echo "`aflow --kpoints=1000 < $SYS_NAME.aflow.std_conv_poscar|tail -n 1|gawk -F= {'print $2'}` 0 0 0" >> qe_inp/$SYS_NAME.qe.std_conv.in
+echo "`aflow --kpoints=1000 < $SYS_NAME.aflow.std_prim_poscar|tail -n 1|gawk -F= {'print $2'}` 0 0 0" >> qe_inp/$SYS_NAME.qe.std_prim.in
+
+mv *.aflow.* *.qe.* ./aflowqe_files

@@ -1,0 +1,39 @@
+#!/bin/bash
+#
+# Created on Thu Mar 28 17:15:31 IST 2019
+#
+#
+usage() {
+	echo "Usage : vc2scf [vcrelax_input] [vcrelax_output] [scf_input]"
+}
+
+export vcrelax_input=$1
+export vcrelax_output=$2
+export scf_input=$3
+
+
+if [ $# -ne 3 ] ; then
+	usage
+	exit 1;
+fi
+
+if test ! -f $vcrelax_input ; then
+        echo "FATAL ERROR :: $vcrelax_input not found"
+        exit 1;
+fi
+
+if test ! -f $vcrelax_output ; then
+        echo "FATAL ERROR :: $vcrelax_output not found"
+        exit 1;
+fi
+
+nat=`grep nat $vcrelax_input|gawk -F= {'print $2'}|xargs`
+ntyp=`grep ntyp $vcrelax_input|gawk -F= {'print $2'}|xargs`
+
+
+rm -rf $scf_input
+sed -n -e /"&"/,/"^\/$"/p $vcrelax_input |sed s/"vc-relax"/"scf"/g > $scf_input
+grep ATOMIC_SPECIES -A $ntyp $vcrelax_input >> $scf_input
+sed -n /"Begin final coordinates"/,/"End final coordinates"/p $vcrelax_output|grep CELL_PARAMETERS -A 3 >> $scf_input
+sed -n /"Begin final coordinates"/,/"End final coordinates"/p $vcrelax_output|grep ATOMIC_POSITIONS -A $nat >> $scf_input
+grep -A 1 K_POINTS $vcrelax_input >> $scf_input

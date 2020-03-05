@@ -1,0 +1,47 @@
+#!/bin/bash
+#
+# Created on : Fri Mar 29 20:09:56 IST 2019
+#
+usage() {
+	echo "Usage : bs_scf2nscf [scf_input] [nscf_input] [bands_input] [kpath_file]"
+}
+
+export scf_input=$1
+export nscf_input=$2
+export bands_input=$3
+export kpath_file=$4
+
+
+if [ $# -ne 4 ] ; then
+	usage
+	exit 1;
+fi
+
+if test ! -f $scf_input ; then
+        echo "FATAL ERROR :: $scf_input not found"
+        exit 1;
+fi
+
+
+if test ! -f $kpath_file ; then
+        echo "FATAL ERROR :: $kpath_file not found"
+        exit 1;
+fi
+
+nat=`grep nat $scf_input|gawk -F= {'print $2'}|xargs`
+ntyp=`grep ntyp $scf_input|gawk -F= {'print $2'}|xargs`
+
+sed -n -e /"&"/,/"^\/$"/p $scf_input |sed s/"scf"/"bands"/g > $nscf_input
+grep ATOMIC_SPECIES -A $ntyp $scf_input >> $nscf_input
+grep CELL_PARAMETERS -A 3 $scf_input >> $nscf_input
+grep ATOMIC_POSITIONS -A $nat $scf_input >> $nscf_input
+cat $kpath_file >> $nscf_input
+
+
+cat > $bands_input <<EOF
+&bands
+  filband = '$bands_input.dat'
+  $(grep outdir $scf_input)
+  no_overlap = .true.
+/
+EOF
