@@ -8,8 +8,9 @@ This repository contains the shell scripts for automating Quantum Espresso Calcu
         4. sed
         5. awk/gawk/nawk
 ## Content
-    1.vcrelax2scf
-    
+    1. vcrelax2scf
+    2. ecutwfc.ipynb
   
-
+### ecutwfc.ipynb
+    Plot ecutwfc convergence test data from Quantum Espresso. 
   
